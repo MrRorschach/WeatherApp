@@ -26,19 +26,16 @@ byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 ////////////////////////////////////////////////////////////////////////
 
 EthernetClient client;
-//EthernetClient client2;
+
 
 char inString[32]; // string for incoming serial data
 int stringPos = 0; // string index counter
 boolean startRead = false; // is reading?
+float values[4];//Space for the weather and temp values
 
-//ThinkSpeak Variables
-//char thingSpeakAddress[] = "api.thingspeak.com";
-//String writeAPIKey = "3R7O6L569OUUMCUG";
-//String tsData;
 long lastConnectionTime=0;
 void setup(){
-   strip.begin();
+  strip.begin();
   strip.show(); 
   Ethernet.begin(mac);
   Serial.begin(9600);
@@ -47,23 +44,38 @@ void setup(){
 void loop(){
  
   String pageValue = connectAndRead(); //connect to the server and read the output
-
+  /* This is the part that takes action from the connectAndRead Data
+   *   float time =atof(inString);
+  if(time>15){
+    Serial.println("Working ob boy");//output for serial testing
+     colorWipe(strip.Color(0, 255, 0), 50); // Green
+  }else{
+   if(time>13){
+      colorWipe(strip.Color(255, 255, 0), 50); // Yellow
+      Serial.println("Ok yeah");
+    }else{
+      if(time>3){
+        colorWipe(strip.Color(255, 0, 0), 50); // Red
+      }else{
+        if(time>0){
+           colorWipe(strip.Color(0, 0, 255), 50); // Blue
+        }
+      }
+    }     
+  }
+   * */
   Serial.println(pageValue); //print out the findings.
-
- 
-  
- 
-  delay(10000); //wait 10 seconds before connecting again
+  delay(120000); //wait 120 seconds before connecting again
 }
 
 String connectAndRead(){
   //connect to the server
 
-  Serial.println("connecting...");
+  Serial.println("Connecting...");
 
   //port 80 is typical of a www page
   if (client.connect(server, 80)) {
-    Serial.println("connected");
+    Serial.println("Connected");
     client.print("GET ");
     client.println(location);
     client.println("Host: www.fosterport.co");
@@ -73,7 +85,7 @@ String connectAndRead(){
     return readPage(); //go and read the output
 
   }else{
-    return "connection failed";
+    return "Connection failed";
   }
 
 }
@@ -82,29 +94,6 @@ String readPage(){
   //read the page, and capture & return everything between '<' and '>'
 
   stringPos = 0;
-  if(inString[0]=='L'){
-    //When time = 0 the API returns leaving
-     colorWipe(strip.Color(0, 255, 0), 50); // Green
-  }else{
-    float time =atof(inString);
-    if(time>15){
-      Serial.println("Working ob boy");//output for serial testing
-       colorWipe(strip.Color(0, 255, 0), 50); // Green
-    }else{
-     if(time>13){
-        colorWipe(strip.Color(255, 255, 0), 50); // Yellow
-        Serial.println("Ok yeah");
-      }else{
-        if(time>3){
-          colorWipe(strip.Color(255, 0, 0), 50); // Red
-        }else{
-          if(time>0){
-             colorWipe(strip.Color(0, 0, 255), 50); // Blue
-          }
-        }
-      }     
-    }
-  }
   memset( &inString, 0, 32 ); //clear inString memory
 
   while(true){
@@ -117,16 +106,18 @@ String readPage(){
         Serial.println("Starting to look");
       }else if(startRead){
 
-        if(c != '>'){ //'>' is our ending character
+        if(c != '>'){ //'>' is our ending character  //need to clean this up/rebuild for the multiple strings
           inString[stringPos] = c;
           stringPos ++;
         }else{
+          if (c=='!' ){
           //got what we need here! We can disconnect now
           startRead = false;
           client.stop();
           client.flush();
           Serial.println("disconnecting.");
           return inString;
+          }
 
         }
 
