@@ -18,7 +18,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 
 //The location to go to on the server
 //make sure to keep HTTP/1.0 at the end, this is telling it what type of file it is
-String location = "/arduinoTesting/ardiWeather.php HTTP/1.0";
+//String location = "/arduinoTesting/ardiWeather.php HTTP/1.0";
 
  
 // if need to change the MAC address (Very Rare)
@@ -42,44 +42,38 @@ void setup(){
 }
 
 void loop(){
- 
-  float pageValue = connectAndRead(); //connect to the server and read the output
-  for(int i=0;i<4;i++){
-    Serial.println(values[i]);
-  }
-  
-  /* This is the part that takes action from the connectAndRead Data
-   *   float time =atof(inString);
-  if(time>15){
-    Serial.println("Working ob boy");//output for serial testing
-     colorWipe(strip.Color(0, 255, 0), 50); // Green
-  }else{
-   if(time>13){
-      colorWipe(strip.Color(255, 255, 0), 50); // Yellow
-      Serial.println("Ok yeah");
-    }else{
-      if(time>3){
-        colorWipe(strip.Color(255, 0, 0), 50); // Red
-      }else{
-        if(time>0){
-           colorWipe(strip.Color(0, 0, 255), 50); // Blue
-        }
-      }
-    }     
-  }
-   * */
+
+  String pageValue = connectAndRead("/arduinoTesting/ardiWeather.php HTTP/1.0"); //connect to the server and read the output
+  Serial.print("The weather code is");
   Serial.println(pageValue); //print out the findings.
-  delay(120000); //wait 120 seconds before connecting again
+  
+
+  pageValue = connectAndRead("/arduinoTesting/ardiWeatherTemp.php HTTP/1.0"); //connect to the server and read the output
+  Serial.print("The current temp is");  
+  Serial.println(pageValue); //print out the findings.
+
+  pageValue = connectAndRead("/arduinoTesting/ardiWeatherMax.php HTTP/1.0"); //connect to the server and read the output
+  Serial.print("The max temp is");  
+  Serial.println(pageValue); //print out the findings.
+
+  pageValue = connectAndRead("/arduinoTesting/ardiWeatherMin.php HTTP/1.0"); //connect to the server and read the output
+  Serial.print("The min temp is");  
+  Serial.println(pageValue); //print out the findings.
+
+  pageValue = connectAndRead("/arduinoTesting/ardiWeatherNight.php HTTP/1.0"); //connect to the server and read the output
+  Serial.print("The evenings weather will be ");  
+  Serial.println(pageValue); //print out the findings.
+  delay(1200000); //wait 1200 seconds before connecting again
 }
 
-float connectAndRead(){
-  //connect to the server
+String connectAndRead(String location){  //connect to the server
+ 
 
-  Serial.println("Connecting...");
+  Serial.println("connecting...");
 
   //port 80 is typical of a www page
   if (client.connect(server, 80)) {
-    Serial.println("Connected");
+    Serial.println("connected");
     client.print("GET ");
     client.println(location);
     client.println("Host: www.fosterport.co");
@@ -89,17 +83,16 @@ float connectAndRead(){
     return readPage(); //go and read the output
 
   }else{
-    return 00000;
+    return "Connection failed";
   }
-
 }
 
-float readPage(){
-  //read the page, and capture & return everything between '<' and '>'
 
+String readPage(){
+  //read the page, and capture & return everything between '<' and '>'
   stringPos = 0;
   memset( &inString, 0, 32 ); //clear inString memory
-  int dataPos=0;
+
   while(true){
 
     if (client.available()) {
@@ -108,37 +101,25 @@ float readPage(){
       if (c == '<' ) { //'<' is our begining character
         startRead = true; //Ready to start reading the part 
         Serial.println("Starting to look");
-        memset( &inString, 0, 32 ); //clear inString memory
       }else if(startRead){
 
-        if(c != '>'){ //'>' is our ending character  //need to clean this up/rebuild for the multiple strings
+        if(c != '>'){ //'>' is our ending character
           inString[stringPos] = c;
           stringPos ++;
         }else{
-          if(c=='>'){
-             values[dataPos]=atof(inString);
-             dataPos++;
-             stringPos ++;
-          }
-          if (c=='!' ){
           //got what we need here! We can disconnect now
           startRead = false;
           client.stop();
           client.flush();
-          Serial.println("disconnecting.");
-          return values[0];
-          }
-
+          Serial.println("Disconnecting.");
+          return inString;
         }
-
       }
-    }else{
-      Serial.println("Not finding the website");
     }
-    
   }
-
 }
+
+
 //This is the NeoPixel code for changing colors curtesy of Adafruit
 void colorWipe(uint32_t c, uint8_t wait) {
   for(uint16_t i=0; i<strip.numPixels(); i++) {
