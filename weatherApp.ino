@@ -1,4 +1,4 @@
-/*Bart Alert Code
+/*WeatherApp Code
 By Robert Foster
 
 For use with an arduino uno+ethernet shield, and adafruits neo pixels
@@ -43,7 +43,11 @@ void setup(){
 
 void loop(){
  
-  String pageValue = connectAndRead(); //connect to the server and read the output
+  float pageValue = connectAndRead(); //connect to the server and read the output
+  for(int i=0;i<4;i++){
+    Serial.println(values[i]);
+  }
+  
   /* This is the part that takes action from the connectAndRead Data
    *   float time =atof(inString);
   if(time>15){
@@ -68,7 +72,7 @@ void loop(){
   delay(120000); //wait 120 seconds before connecting again
 }
 
-String connectAndRead(){
+float connectAndRead(){
   //connect to the server
 
   Serial.println("Connecting...");
@@ -85,17 +89,17 @@ String connectAndRead(){
     return readPage(); //go and read the output
 
   }else{
-    return "Connection failed";
+    return 00000;
   }
 
 }
 
-String readPage(){
+float readPage(){
   //read the page, and capture & return everything between '<' and '>'
 
   stringPos = 0;
   memset( &inString, 0, 32 ); //clear inString memory
-
+  int dataPos=0;
   while(true){
 
     if (client.available()) {
@@ -104,26 +108,34 @@ String readPage(){
       if (c == '<' ) { //'<' is our begining character
         startRead = true; //Ready to start reading the part 
         Serial.println("Starting to look");
+        memset( &inString, 0, 32 ); //clear inString memory
       }else if(startRead){
 
         if(c != '>'){ //'>' is our ending character  //need to clean this up/rebuild for the multiple strings
           inString[stringPos] = c;
           stringPos ++;
         }else{
+          if(c=='>'){
+             values[dataPos]=atof(inString);
+             dataPos++;
+             stringPos ++;
+          }
           if (c=='!' ){
           //got what we need here! We can disconnect now
           startRead = false;
           client.stop();
           client.flush();
           Serial.println("disconnecting.");
-          return inString;
+          return values[0];
           }
 
         }
 
       }
+    }else{
+      Serial.println("Not finding the website");
     }
-
+    
   }
 
 }
